@@ -1,0 +1,56 @@
+name: GeekNews AI 뉴스 봇
+
+on:
+  schedule:
+    # 4시간마다 실행 (UTC 기준: 0,4,8,12,16,20시 → KST: 9,13,17,21,1,5시)
+    - cron: "0 */4 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "DRY RUN (Telegram 전송 생략)"
+        type: boolean
+        default: false
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # ── 1. 코드 체크아웃 ──────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. 전송 기록 캐시 복원 ──────────────────────────────────
+      # sent_ids.json을 Actions 캐시에 저장해 중복 전송 방지
+      - name: Restore sent IDs cache
+        uses: actions/cache@v4
+        with:
+          path: sent_ids.json
+          key: sent-ids-${{ runner.os }}
+          restore-keys: sent-ids-
+
+      # ── 3. Python 설정 ────────────────────────────────────────
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # ── 4. 봇 실행 ───────────────────────────────────────────
+      - name: Run bot
+        env:
+          ANTHROPIC_API_KEY:      ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN:    ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:      ${{ secrets.TELEGRAM_CHAT_ID }}
+          MAX_ITEMS_PER_RUN:      "15"
+          DRY_RUN:                ${{ inputs.dry_run || 'false' }}
+        run: python bot.py
+
+      # ── 5. 전송 기록 캐시 저장 ──────────────────────────────────
+      # 실패해도 캐시는 저장 (중복 방지를 위해)
+      - name: Save sent IDs cache
+        if: always()
+        uses: actions/cache@v4
+        with:
+          path: sent_ids.json
+          key: sent-ids-${{ runner.os }}-${{ github.run_id }}
