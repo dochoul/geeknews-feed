@@ -2,8 +2,8 @@ name: GeekNews AI 뉴스 봇
 
 on:
   schedule:
-    # 4시간마다 실행 (UTC 기준: 0,4,8,12,16,20시 → KST: 9,13,17,21,1,5시)
-    - cron: "0 */4 * * *"
+    # 2시간마다 실행
+    - cron: "0 */2 * * *"
   workflow_dispatch:
     inputs:
       dry_run:
