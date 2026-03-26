@@ -1,0 +1,18 @@
+name: Keepalive
+
+on:
+  schedule:
+    # 매월 1일, 15일 UTC 00:00 (비활성화 방지용)
+    - cron: "0 0 1,15 * *"
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Keepalive commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "chore: keepalive [skip ci]"
+          git push
