@@ -1,11 +1,9 @@
-name: GeekNews AI 뉴스 봇
+name: GeekNews 주간 뉴스 봇
 
 on:
   schedule:
-    # 화~금 KST 09:00 (UTC 00:00) — 월요일 아침은 주간 digest로 대체
-    - cron: "0 0 * * 2-5"
-    # 월~금 KST 18:00 (UTC 09:00)
-    - cron: "0 9 * * 1-5"
+    # 매주 월요일 KST 09:00 (= UTC 00:00)
+    - cron: "0 0 * * 1"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -14,7 +12,7 @@ on:
         default: false
 
 jobs:
-  run-bot:
+  run-weekly-bot:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -24,13 +22,12 @@ jobs:
         uses: actions/checkout@v4
 
       # ── 2. 전송 기록 캐시 복원 ──────────────────────────────────
-      # sent_ids.json을 Actions 캐시에 저장해 중복 전송 방지
-      - name: Restore sent IDs cache
+      - name: Restore sent weekly cache
         uses: actions/cache@v4
         with:
-          path: sent_ids.json
-          key: sent-ids-${{ runner.os }}
-          restore-keys: sent-ids-
+          path: sent_weekly.json
+          key: sent-weekly-${{ runner.os }}
+          restore-keys: sent-weekly-
 
       # ── 3. Python 설정 ────────────────────────────────────────
       - name: Set up Python
@@ -39,20 +36,17 @@ jobs:
           python-version: "3.12"
 
       # ── 4. 봇 실행 ───────────────────────────────────────────
-      - name: Run bot
+      - name: Run weekly bot
         env:
-          ANTHROPIC_API_KEY:      ${{ secrets.ANTHROPIC_API_KEY }}
-          TELEGRAM_BOT_TOKEN:    ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID:      ${{ secrets.TELEGRAM_CHAT_ID }}
-          MAX_ITEMS_PER_RUN:      "15"
-          DRY_RUN:                ${{ inputs.dry_run || 'false' }}
-        run: python bot.py
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          DRY_RUN:            ${{ inputs.dry_run || 'false' }}
+        run: python weekly_bot.py
 
       # ── 5. 전송 기록 캐시 저장 ──────────────────────────────────
-      # 실패해도 캐시는 저장 (중복 방지를 위해)
-      - name: Save sent IDs cache
+      - name: Save sent weekly cache
         if: always()
         uses: actions/cache@v4
         with:
-          path: sent_ids.json
-          key: sent-ids-${{ runner.os }}-${{ github.run_id }}
+          path: sent_weekly.json
+          key: sent-weekly-${{ runner.os }}-${{ github.run_id }}
